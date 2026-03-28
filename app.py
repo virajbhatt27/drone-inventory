@@ -1,96 +1,86 @@
 import streamlit as st
 import pandas as pd
 
-# 1. Page Configuration for a Premium Look
+# 1. Professional UI Setup
 st.set_page_config(page_title="DroneFlow Pro", layout="wide", page_icon="🚁")
 
-# Custom CSS for a clean, modern interface
+# Custom Styling
 st.markdown("""
     <style>
-    .main { background-color: #f8f9fa; }
-    .stMetric { background-color: #ffffff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    [data-testid="stMetricValue"] { color: #1f77b4; }
+    .main { background-color: #f0f2f6; }
+    div[data-testid="stMetric"] { background: white; padding: 15px; border-radius: 10px; border: 1px solid #e0e0e0; }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. THE LIVE LINK (CRITICAL)
-# Go to Google Sheets > File > Share > Publish to Web > Select XLSX > Copy that link here!
-SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSPubWzU-KvqZFCgU_dGHxmGQxbg234qSR62w4TvyzrCPlxw1zzVsgYpbgsNYQCtw/pubhtml"
+# 2. THE LINK (Replace with your Published Link from Step 1)
+SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSPubWzU-KvqZFCgU_dGHxmGQxbg234qSR62w4TvyzrCPlxw1zzVsgYpbgsNYQCtw/pub?output=xlsx"
 
-@st.cache_data(ttl=10) # Refreshes every 10 seconds automatically
-def load_live_data():
-    return pd.read_excel(SHEET_URL)
+@st.cache_data(ttl=10) # Auto-refreshes every 10 seconds
+def load_data():
+    return pd.read_excel(SHEET_URL, engine='openpyxl')
 
 try:
-    df = load_live_data()
-    df.columns = df.columns.str.strip() # Clean headers
+    df = load_data()
+    df.columns = df.columns.str.strip()
 
-    # --- UI HEADER ---
     st.title("🚁 Drone Manufacturing Inventory")
-    st.caption("Live Cloud Sync Active • Updated every 10 seconds")
     
-    # --- DASHBOARD METRICS ---
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total SKUs", len(df))
-    col2.metric("Total Items", int(df['Physical Count'].sum()))
-    col3.metric("Stock Value", f"₹{(df['Physical Count'] * df['Cost']).sum():,.0f}")
-    col4.metric("Low Stock", len(df[df['Physical Count'] < 5]))
-    
-    st.divider()
-
-    # --- POWERFUL FILTERS (SIDEBAR) ---
+    # --- SIDEBAR CONTROLS (Sorting & Filtering) ---
     st.sidebar.header("🛠 Controls")
     search = st.sidebar.text_input("🔍 Search Item or SKU")
     
     # Category Filter
     all_cats = ["All"] + list(df['Category'].unique())
-    selected_cat = st.sidebar.selectbox("📂 Filter by Category", all_cats)
+    selected_cat = st.sidebar.selectbox("📂 Category", all_cats)
     
-    # Sorting Filter
-    sort_option = st.sidebar.radio("🔃 Sort By", ["Recent (Date)", "Stock: Low to High", "Cost: High to Low"])
+    # Sorting
+    sort_by = st.sidebar.radio("🔃 Sort By", ["Stock: Low to High", "Cost: High to Low", "Alphabetical"])
 
     # --- FILTER LOGIC ---
-    filtered_df = df.copy()
+    f_df = df.copy()
     if search:
-        filtered_df = filtered_df[filtered_df['Item Name'].str.contains(search, case=False) | filtered_df['SKU (ID)'].str.contains(search, case=False)]
+        f_df = f_df[f_df['Item Name'].str.contains(search, case=False, na=False) | f_df['SKU (ID)'].str.contains(search, case=False, na=False)]
     if selected_cat != "All":
-        filtered_df = filtered_df[filtered_df['Category'] == selected_cat]
+        f_df = f_df[f_df['Category'] == selected_cat]
     
-    if sort_option == "Stock: Low to High":
-        filtered_df = filtered_df.sort_values("Physical Count")
-    elif sort_option == "Cost: High to Low":
-        filtered_df = filtered_df.sort_values("Cost", ascending=False)
+    if sort_by == "Stock: Low to High":
+        f_df = f_df.sort_values("Physical Count")
+    elif sort_by == "Cost: High to Low":
+        f_df = f_df.sort_values("Cost", ascending=False)
     else:
-        filtered_df = filtered_df.sort_values("Date", ascending=False)
+        f_df = f_df.sort_values("Item Name")
 
-    # --- THE DISPLAY GRID ---
-    for _, row in filtered_df.iterrows():
+    # --- TOP METRICS ---
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Total Items", int(f_df['Physical Count'].sum()))
+    c2.metric("Inventory Value", f"₹{(f_df['Physical Count'] * f_df['Cost']).sum():,.0f}")
+    c3.metric("Low Stock Alerts", len(f_df[f_df['Physical Count'] < 5]))
+
+    # --- GRID DISPLAY ---
+    for _, row in f_df.iterrows():
         with st.container():
-            c1, c2, c3 = st.columns([1, 2, 1])
+            col1, col2, col3 = st.columns([1, 2, 1])
+            sku = str(row['SKU (ID)'])
             
-            with c1:
-                # Still using GitHub for photos as it's the fastest free way
-                sku = str(row['SKU (ID)'])
+            with col1:
+                # Direct link to your GitHub assets
                 img_url = f"https://raw.githubusercontent.com/virajbhatt27/drone-inventory/main/assets/{sku}.jpg"
-                st.image(img_url, use_container_width=True)
+                st.image(img_url, use_container_width=True, caption=sku)
             
-            with c2:
+            with col2:
                 st.subheader(row['Item Name'])
-                st.write(f"**Category:** {row['Category']} | **Loc:** {row['Location']}")
-                st.write(f"*{row['Description']}*")
-                st.caption(f"Spec: {row['Specifications']}")
+                st.write(f"**Loc:** {row['Location']} | **Spec:** {row['Specifications']}")
+                st.caption(row['Description'])
             
-            with c3:
-                # Color code stock levels
-                stock = int(row['Physical Count'])
-                if stock < 5:
-                    st.error(f"⚠️ LOW STOCK: {stock}")
+            with col3:
+                count = int(row['Physical Count'])
+                if count < 5:
+                    st.error(f"Stock: {count}")
                 else:
-                    st.success(f"✅ In Stock: {stock}")
+                    st.success(f"Stock: {count}")
                 st.write(f"**Unit Cost:** ₹{row['Cost']}")
-            
             st.divider()
 
 except Exception as e:
     st.error(f"Live Sync Error: {e}")
-    st.info("Ensure your Google Sheet is 'Published to Web' as an XLSX file.")
+    st.info("Check your Google Sheet 'Publish to Web' link.")
