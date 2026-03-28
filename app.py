@@ -2,89 +2,88 @@ import streamlit as st
 import pandas as pd
 from streamlit_autorefresh import st_autorefresh
 
-# This will refresh the entire app every 30 seconds automatically
-# 30000 milliseconds = 30 seconds
-st_autorefresh(interval=30000, key="datarefresh")
-# 1. Professional UI Setup
-st.set_page_config(page_title="DroneFlow Pro", layout="wide", page_icon="🚁")
+# 1. Page Config & Professional Styling
+st.set_page_config(page_title="DroneFlow Gallery", layout="wide", page_icon="🛸")
 
-# Custom Styling
+# Custom CSS for a clean "Grid" look
 st.markdown("""
     <style>
-    .main { background-color: #f0f2f6; }
-    div[data-testid="stMetric"] { background: white; padding: 15px; border-radius: 10px; border: 1px solid #e0e0e0; }
+    .stButton>button { width: 100%; border-radius: 5px; height: 3em; background-color: #f0f2f6; color: #31333F; border: 1px solid #dcdfe3; }
+    .stButton>button:hover { background-color: #007bff; color: white; border: 1px solid #007bff; }
+    div[data-testid="column"] { padding: 10px; border: 1px solid #f0f2f6; border-radius: 10px; background: white; }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. THE LINK (Replace with your Published Link from Step 1)
+# 2. Auto-Refresh every 60 seconds to stay in sync with Google Sheets
+st_autorefresh(interval=60000, key="frequent_sync")
+
+# 3. Data Engine (Replace with your actual Published Google Sheet Link)
 SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSPubWzU-KvqZFCgU_dGHxmGQxbg234qSR62w4TvyzrCPlxw1zzVsgYpbgsNYQCtw/pub?output=xlsx"
 
-@st.cache_data(ttl=10) # Auto-refreshes every 10 seconds
-def load_data():
-    return pd.read_excel(SHEET_URL, engine='openpyxl')
+@st.cache_data(ttl=10)
+def load_live_data():
+    try:
+        data = pd.read_excel(SHEET_URL, engine='openpyxl')
+        data.columns = data.columns.str.strip()
+        return data
+    except Exception as e:
+        st.error(f"Sync Error: {e}")
+        return None
 
-try:
-    df = load_data()
-    df.columns = df.columns.str.strip()
+df = load_live_data()
 
-    st.title("🚁 Drone Manufacturing Inventory")
+if df is not None:
+    # --- HEADER ---
+    st.title("🚁 Manufacturing Inventory Gallery")
     
-    # --- SIDEBAR CONTROLS (Sorting & Filtering) ---
-    st.sidebar.header("🛠 Controls")
-    search = st.sidebar.text_input("🔍 Search Item or SKU")
-    
-    # Category Filter
-    all_cats = ["All"] + list(df['Category'].unique())
-    selected_cat = st.sidebar.selectbox("📂 Category", all_cats)
-    
-    # Sorting
-    sort_by = st.sidebar.radio("🔃 Sort By", ["Stock: Low to High", "Cost: High to Low", "Alphabetical"])
+    # --- SEARCH & FILTER (One line) ---
+    search_col, cat_col = st.columns([2, 1])
+    with search_col:
+        search = st.text_input("🔍 Search by Name or SKU", placeholder="Search...")
+    with cat_col:
+        categories = ["All Categories"] + list(df['Category'].unique())
+        selected_cat = st.selectbox("📂 Filter", categories)
 
-    # --- FILTER LOGIC ---
+    # Filtering Logic
     f_df = df.copy()
     if search:
         f_df = f_df[f_df['Item Name'].str.contains(search, case=False, na=False) | f_df['SKU (ID)'].str.contains(search, case=False, na=False)]
-    if selected_cat != "All":
+    if selected_cat != "All Categories":
         f_df = f_df[f_df['Category'] == selected_cat]
-    
-    if sort_by == "Stock: Low to High":
-        f_df = f_df.sort_values("Physical Count")
-    elif sort_by == "Cost: High to Low":
-        f_df = f_df.sort_values("Cost", ascending=False)
-    else:
-        f_df = f_df.sort_values("Item Name")
 
-    # --- TOP METRICS ---
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Total Items", int(f_df['Physical Count'].sum()))
-    c2.metric("Inventory Value", f"₹{(f_df['Physical Count'] * f_df['Cost']).sum():,.0f}")
-    c3.metric("Low Stock Alerts", len(f_df[f_df['Physical Count'] < 5]))
+    st.divider()
 
-    # --- GRID DISPLAY ---
-    for _, row in f_df.iterrows():
-        with st.container():
-            col1, col2, col3 = st.columns([1, 2, 1])
-            sku = str(row['SKU (ID)'])
-            
-            with col1:
-                # Direct link to your GitHub assets
+    # --- THE 4-COLUMN GRID ---
+    # We loop through the data and create a new row every 4 items
+    rows = [f_df[i:i + 4] for i in range(0, len(f_df), 4)]
+
+    for row_data in rows:
+        cols = st.columns(4)
+        for i, (index, item) in enumerate(row_data.iterrows()):
+            with cols[i]:
+                sku = str(item['SKU (ID)'])
+                # Photo Link from GitHub
                 img_url = f"https://raw.githubusercontent.com/virajbhatt27/drone-inventory/main/assets/{sku}.jpg"
-                st.image(img_url, use_container_width=True, caption=sku)
-            
-            with col2:
-                st.subheader(row['Item Name'])
-                st.write(f"**Loc:** {row['Location']} | **Spec:** {row['Specifications']}")
-                st.caption(row['Description'])
-            
-            with col3:
-                count = int(row['Physical Count'])
+                
+                st.image(img_url, use_container_width=True)
+                st.subheader(item['Item Name'])
+                
+                # Simple Stock Indicator
+                count = int(item['Physical Count'])
                 if count < 5:
-                    st.error(f"Stock: {count}")
+                    st.warning(f"Stock: {count}")
                 else:
                     st.success(f"Stock: {count}")
-                st.write(f"**Unit Cost:** ₹{row['Cost']}")
-            st.divider()
+                
+                # THE "KNOW ALL DETAILS" BUTTON
+                # We use a unique key for every button
+                if st.button(f"View Details", key=f"btn_{sku}"):
+                    st.info(f"**Full Specifications:**\n{item['Specifications']}")
+                    st.write(f"**Description:** {item['Description']}")
+                    st.write(f"**Location:** {item['Location']}")
+                    st.write(f"**Unit Cost:** ₹{item['Cost']}")
+                    st.write(f"**Last Audit:** {item['Date']}")
 
-except Exception as e:
-    st.error(f"Live Sync Error: {e}")
-    st.info("Check your Google Sheet 'Publish to Web' link.")
+# 4. Error Message if Sheet is disconnected
+else:
+    st.warning("Connect your Google Sheet 'Publish to Web' link to begin.")
