@@ -1,6 +1,10 @@
 import streamlit as st
 import pandas as pd
+from streamlit_autorefresh import st_autorefresh
 
+# This will refresh the entire app every 30 seconds automatically
+# 30000 milliseconds = 30 seconds
+st_autorefresh(interval=30000, key="datarefresh")
 # 1. Professional UI Setup
 st.set_page_config(page_title="DroneFlow Pro", layout="wide", page_icon="🚁")
 
