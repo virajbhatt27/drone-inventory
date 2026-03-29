@@ -18,7 +18,7 @@ with head_col2:
 with head_col3:
     is_dark = st.toggle("🌙 Dark Mode", value=False, key="theme_toggle")
     
-    clock_led = "#ff3333" if is_dark else "#d32f2f"
+    clock_led = "#ffffff" if is_dark else "#000000"
     clock_html = f"""
     <link href="https://cdn.jsdelivr.net/npm/dseg@0.46.0/css/dseg.css" rel="stylesheet">
     <div style="text-align: right; font-family: sans-serif; margin-top: 10px;">
