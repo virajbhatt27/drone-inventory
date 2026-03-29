@@ -19,7 +19,7 @@ with head_col3:
     is_dark = st.toggle("🌙 Dark Mode", value=False, key="theme_toggle")
     
     clock_led = "#ffffff" if is_dark else "#000000"
-    clock_text = "#ffffff" if is_dark else "#000000"  # Changes Date & Day text color
+    clock_text = "#ffffff" if is_dark else "#000000"
     
     clock_html = f"""
     <link href="https://cdn.jsdelivr.net/npm/dseg@0.46.0/css/dseg.css" rel="stylesheet">
@@ -51,26 +51,26 @@ if is_dark:
     # Home Page: DARK
     bg_color = "#121212"       
     card_bg = "#1E1E1E"        
-    main_text = "#FFFFFF"      # All Home Page Text WHITE
-    card_border = "#FFFFFF"    # White boundary for Dark Mode
+    main_text = "#FFFFFF"      
+    card_border = "#FFFFFF"    
     border_color = "#333333"   
     
     # Modal Pop-up: LIGHT (Inverted)
     modal_bg = "#F4F6F9"
-    modal_text = "#FFFFFF"     # All Modal Text BLACK
+    modal_text = "#000000"     
     modal_border = "#CCCCCC"
     table_border = "#DDDDDD"
 else:
     # Home Page: LIGHT
     bg_color = "#F4F6F9"       
     card_bg = "#FFFFFF"        
-    main_text = "#000000"      # All Home Page Text BLACK
-    card_border = "#000000"    # Black boundary for Light Mode
+    main_text = "#000000"      
+    card_border = "#000000"    
     border_color = "#E2E8F0"   
     
     # Modal Pop-up: DARK (Inverted)
     modal_bg = "#1A1A1A"
-    modal_text = "#FFFFFF"     # All Modal Text WHITE
+    modal_text = "#FFFFFF"     
     modal_border = "#444444"
     table_border = "#333333"
 
@@ -80,15 +80,18 @@ css = f"""
     /* 1. Global Home Page Settings */
     .stApp {{ background-color: {bg_color}; }}
     
-    /* Force Home Page Text Color */
     p, h1, h2, h3, h4, span, label, div[data-testid="stMarkdownContainer"] * {{
         color: {main_text} !important;
     }}
     
-    header {{ visibility: hidden; }}
+    /* FIX: Restore the 3-line menu but hide Streamlit watermarks */
+    #MainMenu {{ visibility: hidden; }}
+    footer {{ visibility: hidden; }}
+    header {{ background-color: transparent !important; }}
+    
     [data-testid="stSidebar"] {{ background-color: {card_bg} !important; border-right: 1px solid {border_color}; }}
     
-    /* 2. PRODUCT CARDS (Adds the White/Black Solid Boundary) */
+    /* 2. PRODUCT CARDS */
     div[data-testid="column"] {{
         background-color: {card_bg};
         border: 2px solid {card_border} !important; 
@@ -97,11 +100,15 @@ css = f"""
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }}
     
-    /* 3. 'ⓘ' BUTTON ICON STYLING */
-    div[data-testid="column"] .stButton > button {{
+    /* 3. 'ⓘ' BUTTON ICON STYLING (Completely Transparent Background) */
+    div[data-testid="column"] .stButton > button,
+    div[data-testid="column"] .stButton > button:hover,
+    div[data-testid="column"] .stButton > button:focus,
+    div[data-testid="column"] .stButton > button:active {{
+        background: transparent !important;
         background-color: transparent !important;
         border: none !important;
-        color: {main_text} !important; /* Forces Black in Light Mode, White in Dark Mode */
+        color: {main_text} !important; 
         font-size: 22px !important;
         padding: 0;
         height: auto;
@@ -120,7 +127,6 @@ css = f"""
         border: 1px solid {modal_border} !important;
     }}
     
-    /* Force Modal Text Color (Overrides Global) */
     div[data-testid="stDialog"] p,
     div[data-testid="stDialog"] h1,
     div[data-testid="stDialog"] h2,
@@ -132,7 +138,6 @@ css = f"""
         color: {modal_text} !important;
     }}
     
-    /* Fix Modal Close Button Color ('X' icon) */
     div[data-testid="stDialog"] svg {{
         fill: {modal_text} !important;
     }}
@@ -185,7 +190,7 @@ if df is not None:
     # ---------------------------------------------------------
     @st.dialog("Component Datasheet", width="large")
     def show_item_details(item_data):
-        m_col1, m_col2 = st.columns([4, 6]) # Exact 40/60 split
+        m_col1, m_col2 = st.columns([4, 6]) 
         sku_id = str(item_data['SKU (ID)'])
         image_url = f"https://raw.githubusercontent.com/virajbhatt27/drone-inventory/main/assets/{sku_id}.jpg"
         
@@ -195,7 +200,6 @@ if df is not None:
         with m_col2:
             st.markdown(f"<h3 style='margin-top:0;'>{item_data['Item Name']}</h3>", unsafe_allow_html=True)
             
-            # Professional Uniform Table layout with dynamic border color
             table_html = f"""
             <table style="width: 100%; border-collapse: collapse; font-size: 15px; margin-top: 10px;">
                 <tr style="border-bottom: 1px solid {table_border};">
@@ -231,7 +235,7 @@ if df is not None:
             st.markdown(table_html, unsafe_allow_html=True)
 
     # ---------------------------------------------------------
-    # MAIN GRID RENDERING (Image, followed by Name & ⓘ inline)
+    # MAIN GRID RENDERING 
     # ---------------------------------------------------------
     rows = [f_df.iloc[i:i + 4] for i in range(0, len(f_df), 4)]
 
@@ -242,10 +246,8 @@ if df is not None:
                 sku = str(item['SKU (ID)'])
                 img_url = f"https://raw.githubusercontent.com/virajbhatt27/drone-inventory/main/assets/{sku}.jpg"
                 
-                # Render Image First
                 st.image(img_url, use_container_width=True)
                 
-                # Render Name and 'ⓘ' side-by-side using inner columns
                 name_col, btn_col = st.columns([5, 1])
                 
                 with name_col:
