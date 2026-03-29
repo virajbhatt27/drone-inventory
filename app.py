@@ -188,14 +188,57 @@ if df is not None:
     # ---------------------------------------------------------
     # MODAL: PROFESSIONAL DATASHEET (40% / 60%)
     # ---------------------------------------------------------
+   # ---------------------------------------------------------
+    # MODAL: PROFESSIONAL DATASHEET WITH IMAGE SLIDER
+    # ---------------------------------------------------------
     @st.dialog("Component Datasheet", width="large")
     def show_item_details(item_data):
         m_col1, m_col2 = st.columns([4, 6]) 
         sku_id = str(item_data['SKU (ID)'])
-        image_url = f"https://raw.githubusercontent.com/virajbhatt27/drone-inventory/main/assets/{sku_id}.jpg"
+        safe_sku = sku_id.replace("-", "_").replace(" ", "_") # For safe Javascript variables
         
+        # Check how many images exist from the Google Sheet
+        try:
+            img_count = int(item_data.get('Image Count', 1))
+            if pd.isna(img_count): img_count = 1
+        except:
+            img_count = 1
+
         with m_col1:
-            st.image(image_url, use_container_width=True)
+            if img_count <= 1:
+                # Standard single image
+                single_url = f"https://raw.githubusercontent.com/virajbhatt27/drone-inventory/main/assets/{sku_id}_1.jpg"
+                st.image(single_url, use_container_width=True)
+            else:
+                # E-Commerce Style Image Slider (Carousel)
+                img_tags = ""
+                for i in range(1, img_count + 1):
+                    display_style = "display: block;" if i == 1 else "display: none;"
+                    img_url = f"https://raw.githubusercontent.com/virajbhatt27/drone-inventory/main/assets/{sku_id}_{i}.jpg"
+                    img_tags += f'<img class="slide" src="{img_url}" style="max-width: 100%; max-height: 300px; {display_style} margin: auto; border-radius: 8px;">\n'
+
+                slider_html = f"""
+                <div id="slider_{safe_sku}" style="position: relative; width: 100%; height: 320px; display: flex; align-items: center; justify-content: center; background: transparent;">
+                    <button onclick="moveSlide_{safe_sku}(-1)" style="position: absolute; left: 5px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.8); color: black; border: 1px solid #ccc; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; z-index: 10; font-weight: bold; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">&#10094;</button>
+                    
+                    {img_tags}
+                    
+                    <button onclick="moveSlide_{safe_sku}(1)" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.8); color: black; border: 1px solid #ccc; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; z-index: 10; font-weight: bold; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">&#10095;</button>
+                </div>
+                <script>
+                    (function() {{
+                        const container = document.getElementById("slider_{safe_sku}");
+                        const slides = container.querySelectorAll('.slide');
+                        let currentIdx = 0;
+                        window.moveSlide_{safe_sku} = function(direction) {{
+                            slides[currentIdx].style.display = 'none';
+                            currentIdx = (currentIdx + direction + slides.length) % slides.length;
+                            slides[currentIdx].style.display = 'block';
+                        }}
+                    }})();
+                </script>
+                """
+                components.html(slider_html, height=330)
             
         with m_col2:
             st.markdown(f"<h3 style='margin-top:0;'>{item_data['Item Name']}</h3>", unsafe_allow_html=True)
@@ -233,6 +276,10 @@ if df is not None:
             </table>
             """
             st.markdown(table_html, unsafe_allow_html=True)
+
+    # --- IMPORTANT NOTE FOR THE MAIN GRID ---
+    # Make sure to update the image URL in the main grid section at the bottom of your code to look for the "_1.jpg" image:
+    # img_url = f"https://raw.githubusercontent.com/virajbhatt27/drone-inventory/main/assets/{sku}_1.jpg"
 
     # ---------------------------------------------------------
     # MAIN GRID RENDERING 
