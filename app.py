@@ -2,11 +2,10 @@ import streamlit as st
 import pandas as pd
 import streamlit.components.v1 as components
 
-# 1. Page Configuration (Must be first)
+# 1. Page Configuration
 st.set_page_config(page_title="Protthapan Inventory", layout="wide", initial_sidebar_state="collapsed")
 
 # 2. TOP HEADER & INSTANT THEME TOGGLE
-# We render the header first so we can grab the toggle state instantly, eliminating the 1-click lag.
 head_col1, head_col2, head_col3 = st.columns([1, 6, 2])
 
 with head_col1:
@@ -17,10 +16,8 @@ with head_col2:
     st.markdown("<p style='margin: 0; padding: 0; font-size: 16px; opacity: 0.7; font-weight: 600;'>Inventory Management System</p>", unsafe_allow_html=True)
 
 with head_col3:
-    # Read the toggle state instantly
     is_dark = st.toggle("🌙 Dark Mode", value=False, key="theme_toggle")
     
-    # 7-Segment Clock
     clock_led = "#ff3333" if is_dark else "#d32f2f"
     clock_html = f"""
     <link href="https://cdn.jsdelivr.net/npm/dseg@0.46.0/css/dseg.css" rel="stylesheet">
@@ -47,55 +44,61 @@ with head_col3:
 
 st.markdown("<hr style='margin-top: 5px; margin-bottom: 20px;'>", unsafe_allow_html=True)
 
-# 3. SMART THEME ENGINE (Applies instantly based on the toggle above)
+# 3. STRICT INVERTED THEME ENGINE
 if is_dark:
+    # Home Page: DARK
     bg_color = "#121212"       
     card_bg = "#1E1E1E"        
-    text_color = "#FFFFFF"     
+    main_text = "#FFFFFF"      # All Home Page Text WHITE
     border_color = "#333333"   
-    table_border = "#444444"
+    
+    # Modal Pop-up: LIGHT (Inverted)
+    modal_bg = "#F4F6F9"
+    modal_text = "#000000"     # All Modal Text BLACK
+    modal_border = "#CCCCCC"
+    table_border = "#DDDDDD"
 else:
+    # Home Page: LIGHT
     bg_color = "#F4F6F9"       
     card_bg = "#FFFFFF"        
-    text_color = "#111111"     
+    main_text = "#000000"      # All Home Page Text BLACK
     border_color = "#E2E8F0"   
-    table_border = "#EEEEEE"
+    
+    # Modal Pop-up: DARK (Inverted)
+    modal_bg = "#1A1A1A"
+    modal_text = "#FFFFFF"     # All Modal Text WHITE
+    modal_border = "#444444"
+    table_border = "#333333"
 
-# 4. STRICT CSS INJECTION
+# 4. CSS INJECTION (Strict Class Targeting)
 css = f"""
 <style>
-    /* Global Colors */
+    /* 1. Global Home Page Settings */
     .stApp {{ background-color: {bg_color}; }}
-    .stMarkdown p, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3, label, .stText, th, td {{
-        color: {text_color} !important;
+    
+    /* Force Home Page Text Color */
+    p, h1, h2, h3, h4, span, label, div[data-testid="stMarkdownContainer"] * {{
+        color: {main_text} !important;
     }}
     
-    /* Clean UI Elements */
     header {{ visibility: hidden; }}
     [data-testid="stSidebar"] {{ background-color: {card_bg} !important; border-right: 1px solid {border_color}; }}
     
-    /* STRICT MODAL OVERRIDE (Fixes the black/white contrast issue) */
-    div[data-testid="stDialog"] > div {{
-        background-color: {card_bg} !important;
-        border: 1px solid {border_color} !important;
-    }}
-    div[data-testid="stDialog"] * {{ color: {text_color} !important; }}
-    
-    /* PRODUCT CARDS */
+    /* 2. PRODUCT CARDS */
     div[data-testid="column"] {{
         background-color: {card_bg};
         border: 1px solid {border_color};
         border-radius: 8px;
         padding: 10px;
-        position: relative; /* Anchor for the 'i' button */
+        position: relative; 
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }}
     
-    /* 'i' BUTTON INSIDE THE IMAGE */
+    /* 3. 'i' BUTTON (Inside image, always visible) */
     div[data-testid="column"] .stButton {{
         position: absolute;
-        top: 15px;    /* Sits inside the image frame */
-        right: 15px;  /* Sits inside the image frame */
+        top: 15px;    
+        right: 15px;  
         z-index: 99;
     }}
     div[data-testid="column"] .stButton > button {{
@@ -103,11 +106,34 @@ css = f"""
         width: 30px;
         height: 30px;
         padding: 0;
-        font-weight: 800;
-        background-color: rgba(255, 255, 255, 0.9) !important; /* Always light so it pops over dark images */
-        color: #000000 !important; /* Always black text */
+        font-weight: 900;
+        background-color: rgba(255, 255, 255, 0.95) !important; 
+        color: #000000 !important; /* Forces black text on the white 'i' button */
         border: 1px solid #aaa;
         box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+    }}
+
+    /* 4. STRICT INVERTED MODAL (POP-UP) RULES */
+    div[data-testid="stDialog"] > div {{
+        background-color: {modal_bg} !important;
+        border: 1px solid {modal_border} !important;
+    }}
+    
+    /* Force Modal Text Color (Overrides Global) */
+    div[data-testid="stDialog"] p,
+    div[data-testid="stDialog"] h1,
+    div[data-testid="stDialog"] h2,
+    div[data-testid="stDialog"] h3,
+    div[data-testid="stDialog"] span,
+    div[data-testid="stDialog"] td,
+    div[data-testid="stDialog"] th,
+    div[data-testid="stDialog"] div {{
+        color: {modal_text} !important;
+    }}
+    
+    /* Fix Modal Close Button Color ('X' icon) */
+    div[data-testid="stDialog"] svg {{
+        fill: {modal_text} !important;
     }}
 </style>
 """
@@ -168,7 +194,7 @@ if df is not None:
         with m_col2:
             st.markdown(f"<h3 style='margin-top:0;'>{item_data['Item Name']}</h3>", unsafe_allow_html=True)
             
-            # Professional Uniform Table layout
+            # Professional Uniform Table layout with dynamic border color
             table_html = f"""
             <table style="width: 100%; border-collapse: collapse; font-size: 15px; margin-top: 10px;">
                 <tr style="border-bottom: 1px solid {table_border};">
@@ -181,7 +207,7 @@ if df is not None:
                 </tr>
                 <tr style="border-bottom: 1px solid {table_border};">
                     <td style="padding: 10px 0; font-weight: bold;">Stock Level</td>
-                    <td style="padding: 10px 0; color: #007bff; font-weight: bold;">{item_data['Physical Count']} {item_data['Unit']}</td>
+                    <td style="padding: 10px 0; font-weight: bold;">{item_data['Physical Count']} {item_data['Unit']}</td>
                 </tr>
                 <tr style="border-bottom: 1px solid {table_border};">
                     <td style="padding: 10px 0; font-weight: bold;">Unit Cost</td>
@@ -215,7 +241,7 @@ if df is not None:
                 sku = str(item['SKU (ID)'])
                 img_url = f"https://raw.githubusercontent.com/virajbhatt27/drone-inventory/main/assets/{sku}.jpg"
                 
-                # Button renders first so CSS absolute positioning places it over the image
+                # 'i' button injected first so it overlays the image below it
                 if st.button("i", key=f"info_{sku}"):
                     show_item_details(item)
                     
