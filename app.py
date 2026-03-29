@@ -19,9 +19,11 @@ with head_col3:
     is_dark = st.toggle("🌙 Dark Mode", value=False, key="theme_toggle")
     
     clock_led = "#ffffff" if is_dark else "#000000"
+    clock_text = "#ffffff" if is_dark else "#000000"  # Changes Date & Day text color
+    
     clock_html = f"""
     <link href="https://cdn.jsdelivr.net/npm/dseg@0.46.0/css/dseg.css" rel="stylesheet">
-    <div style="text-align: right; font-family: sans-serif; margin-top: 10px;">
+    <div style="text-align: right; font-family: sans-serif; margin-top: 10px; color: {clock_text};">
         <div id="clock_time" style="font-family: 'DSEG7 Classic', monospace; font-size: 24px; font-style: italic; color: {clock_led}; margin-bottom: 2px;"></div>
         <div id="clock_date" style="font-size: 13px; font-weight: bold; letter-spacing: 0.5px;"></div>
         <div id="clock_day" style="font-size: 13px; opacity: 0.8;"></div>
@@ -50,11 +52,12 @@ if is_dark:
     bg_color = "#121212"       
     card_bg = "#1E1E1E"        
     main_text = "#FFFFFF"      # All Home Page Text WHITE
+    card_border = "#FFFFFF"    # White boundary for Dark Mode
     border_color = "#333333"   
     
     # Modal Pop-up: LIGHT (Inverted)
     modal_bg = "#F4F6F9"
-    modal_text = "#FFFFFF"     # All Modal Text BLACK
+    modal_text = "#000000"     # All Modal Text BLACK
     modal_border = "#CCCCCC"
     table_border = "#DDDDDD"
 else:
@@ -62,6 +65,7 @@ else:
     bg_color = "#F4F6F9"       
     card_bg = "#FFFFFF"        
     main_text = "#000000"      # All Home Page Text BLACK
+    card_border = "#000000"    # Black boundary for Light Mode
     border_color = "#E2E8F0"   
     
     # Modal Pop-up: DARK (Inverted)
@@ -84,33 +88,30 @@ css = f"""
     header {{ visibility: hidden; }}
     [data-testid="stSidebar"] {{ background-color: {card_bg} !important; border-right: 1px solid {border_color}; }}
     
-    /* 2. PRODUCT CARDS */
+    /* 2. PRODUCT CARDS (Adds the White/Black Solid Boundary) */
     div[data-testid="column"] {{
         background-color: {card_bg};
-        border: 1px solid {border_color};
+        border: 2px solid {card_border} !important; 
         border-radius: 8px;
-        padding: 10px;
-        position: relative; 
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        padding: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }}
     
-    /* 3. 'i' BUTTON (Inside image, always visible) */
-    div[data-testid="column"] .stButton {{
-        position: absolute;
-        top: 15px;    
-        right: 15px;  
-        z-index: 99;
-    }}
+    /* 3. 'ⓘ' BUTTON ICON STYLING */
     div[data-testid="column"] .stButton > button {{
-        border-radius: 50%;
-        width: 30px;
-        height: 30px;
+        background-color: transparent !important;
+        border: none !important;
+        color: {main_text} !important; /* Forces Black in Light Mode, White in Dark Mode */
+        font-size: 22px !important;
         padding: 0;
-        font-weight: 900;
-        background-color: rgba(255, 255, 255, 0.95) !important; 
-        color: #000000 !important; /* Forces black text on the white 'i' button */
-        border: 1px solid #aaa;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+        height: auto;
+        width: 100%;
+        display: flex;
+        justify-content: flex-end;
+        box-shadow: none !important;
+    }}
+    div[data-testid="column"] .stButton > button:hover {{
+        opacity: 0.6;
     }}
 
     /* 4. STRICT INVERTED MODAL (POP-UP) RULES */
@@ -230,7 +231,7 @@ if df is not None:
             st.markdown(table_html, unsafe_allow_html=True)
 
     # ---------------------------------------------------------
-    # MAIN GRID RENDERING
+    # MAIN GRID RENDERING (Image, followed by Name & ⓘ inline)
     # ---------------------------------------------------------
     rows = [f_df.iloc[i:i + 4] for i in range(0, len(f_df), 4)]
 
@@ -241,12 +242,18 @@ if df is not None:
                 sku = str(item['SKU (ID)'])
                 img_url = f"https://raw.githubusercontent.com/virajbhatt27/drone-inventory/main/assets/{sku}.jpg"
                 
-                # 'i' button injected first so it overlays the image below it
-                if st.button("i", key=f"info_{sku}"):
-                    show_item_details(item)
-                    
+                # Render Image First
                 st.image(img_url, use_container_width=True)
-                st.markdown(f"<div style='text-align: center; font-weight: 600; padding-top: 8px;'>{item['Item Name']}</div>", unsafe_allow_html=True)
+                
+                # Render Name and 'ⓘ' side-by-side using inner columns
+                name_col, btn_col = st.columns([5, 1])
+                
+                with name_col:
+                    st.markdown(f"<div style='font-weight: 600; padding-top: 5px; font-size: 15px;'>{item['Item Name']}</div>", unsafe_allow_html=True)
+                
+                with btn_col:
+                    if st.button("ⓘ", key=f"info_{sku}"):
+                        show_item_details(item)
 
 else:
     st.error("Data Load Failed: Check your Google Sheets link.")
