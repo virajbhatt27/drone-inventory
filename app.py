@@ -46,52 +46,37 @@ with head_col3:
 
 st.markdown("<hr style='margin-top: 5px; margin-bottom: 20px;'>", unsafe_allow_html=True)
 
-# 3. STRICT INVERTED THEME ENGINE
+# 3. HOME PAGE THEME ENGINE
 if is_dark:
-    # Home Page: DARK
     bg_color = "#121212"       
     card_bg = "#1E1E1E"        
     main_text = "#FFFFFF"      
     card_border = "#FFFFFF"    
     border_color = "#333333"   
-    
-    # Modal Pop-up: LIGHT (Inverted)
-    modal_bg = "#F4F6F9"
-    modal_text = "#000000"     
-    modal_border = "#CCCCCC"
-    table_border = "#DDDDDD"
 else:
-    # Home Page: LIGHT
     bg_color = "#F4F6F9"       
     card_bg = "#FFFFFF"        
     main_text = "#000000"      
     card_border = "#000000"    
     border_color = "#E2E8F0"   
-    
-    # Modal Pop-up: DARK (Inverted)
-    modal_bg = "#1A1A1A"
-    modal_text = "#FFFFFF"     
-    modal_border = "#444444"
-    table_border = "#333333"
 
-# 4. CSS INJECTION (Strict Class Targeting)
+# 4. CSS INJECTION 
 css = f"""
 <style>
-    /* 1. Global Home Page Settings */
+    /* Home Page Settings */
     .stApp {{ background-color: {bg_color}; }}
     
     p, h1, h2, h3, h4, span, label, div[data-testid="stMarkdownContainer"] * {{
         color: {main_text} !important;
     }}
     
-    /* FIX: Restore the 3-line menu but hide Streamlit watermarks */
     #MainMenu {{ visibility: hidden; }}
     footer {{ visibility: hidden; }}
     header {{ background-color: transparent !important; }}
     
     [data-testid="stSidebar"] {{ background-color: {card_bg} !important; border-right: 1px solid {border_color}; }}
     
-    /* 2. PRODUCT CARDS */
+    /* PRODUCT CARDS */
     div[data-testid="column"] {{
         background-color: {card_bg};
         border: 2px solid {card_border} !important; 
@@ -100,11 +85,8 @@ css = f"""
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }}
     
-    /* 3. 'ⓘ' BUTTON ICON STYLING (Completely Transparent Background) */
-    div[data-testid="column"] .stButton > button,
-    div[data-testid="column"] .stButton > button:hover,
-    div[data-testid="column"] .stButton > button:focus,
-    div[data-testid="column"] .stButton > button:active {{
+    /* 'ⓘ' BUTTON ICON STYLING */
+    div[data-testid="column"] .stButton > button {{
         background: transparent !important;
         background-color: transparent !important;
         border: none !important;
@@ -117,14 +99,12 @@ css = f"""
         justify-content: flex-end;
         box-shadow: none !important;
     }}
-    div[data-testid="column"] .stButton > button:hover {{
-        opacity: 0.6;
-    }}
+    div[data-testid="column"] .stButton > button:hover {{ opacity: 0.6; }}
 
-    /* 4. STRICT INVERTED MODAL (POP-UP) RULES */
+    /* STRICT MODAL (POP-UP) RULES - LOCKED TO DARK THEME WITH WHITE TEXT */
     div[data-testid="stDialog"] > div {{
-        background-color: {modal_bg} !important;
-        border: 1px solid {modal_border} !important;
+        background-color: #1A1A1A !important;
+        border: 1px solid #444444 !important;
     }}
     
     div[data-testid="stDialog"] p,
@@ -135,12 +115,10 @@ css = f"""
     div[data-testid="stDialog"] td,
     div[data-testid="stDialog"] th,
     div[data-testid="stDialog"] div {{
-        color: {modal_text} !important;
+        color: #FFFFFF !important;
     }}
     
-    div[data-testid="stDialog"] svg {{
-        fill: {modal_text} !important;
-    }}
+    div[data-testid="stDialog"] svg {{ fill: #FFFFFF !important; }}
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
@@ -173,12 +151,10 @@ if df is not None:
     price_limit = st.sidebar.slider("Max Price (INR):", min_value=0.0, max_value=max_cost, value=max_cost)
     show_out_of_stock = st.sidebar.checkbox("Show Out of Stock only")
 
-    # Apply Filters
     f_df = df.copy()
     f_df = f_df[f_df['Category'].isin(selected_cats)]
     f_df = f_df[f_df['Cost'] <= price_limit]
-    if show_out_of_stock:
-        f_df = f_df[f_df['Physical Count'] <= 0]
+    if show_out_of_stock: f_df = f_df[f_df['Physical Count'] <= 0]
         
     if sort_option == "A to Z": f_df = f_df.sort_values("Item Name", ascending=True)
     elif sort_option == "Z to A": f_df = f_df.sort_values("Item Name", ascending=False)
@@ -186,18 +162,14 @@ if df is not None:
     elif sort_option == "Price: Low to High": f_df = f_df.sort_values("Cost", ascending=True)
 
     # ---------------------------------------------------------
-    # MODAL: PROFESSIONAL DATASHEET (40% / 60%)
-    # ---------------------------------------------------------
-   # ---------------------------------------------------------
-    # MODAL: PROFESSIONAL DATASHEET WITH IMAGE SLIDER
+    # MODAL: PROFESSIONAL DATASHEET WITH CAROUSEL
     # ---------------------------------------------------------
     @st.dialog("Component Datasheet", width="large")
     def show_item_details(item_data):
         m_col1, m_col2 = st.columns([4, 6]) 
         sku_id = str(item_data['SKU (ID)'])
-        safe_sku = sku_id.replace("-", "_").replace(" ", "_") # For safe Javascript variables
+        safe_sku = sku_id.replace("-", "_").replace(" ", "_")
         
-        # Check how many images exist from the Google Sheet
         try:
             img_count = int(item_data.get('Image Count', 1))
             if pd.isna(img_count): img_count = 1
@@ -206,11 +178,10 @@ if df is not None:
 
         with m_col1:
             if img_count <= 1:
-                # Standard single image
+                # FIXED: Force the system to look for the _1.jpg file
                 single_url = f"https://raw.githubusercontent.com/virajbhatt27/drone-inventory/main/assets/{sku_id}_1.jpg"
                 st.image(single_url, use_container_width=True)
             else:
-                # E-Commerce Style Image Slider (Carousel)
                 img_tags = ""
                 for i in range(1, img_count + 1):
                     display_style = "display: block;" if i == 1 else "display: none;"
@@ -220,14 +191,13 @@ if df is not None:
                 slider_html = f"""
                 <div id="slider_{safe_sku}" style="position: relative; width: 100%; height: 320px; display: flex; align-items: center; justify-content: center; background: transparent;">
                     <button onclick="moveSlide_{safe_sku}(-1)" style="position: absolute; left: 5px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.8); color: black; border: 1px solid #ccc; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; z-index: 10; font-weight: bold; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">&#10094;</button>
-                    
                     {img_tags}
-                    
                     <button onclick="moveSlide_{safe_sku}(1)" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.8); color: black; border: 1px solid #ccc; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; z-index: 10; font-weight: bold; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">&#10095;</button>
                 </div>
                 <script>
                     (function() {{
                         const container = document.getElementById("slider_{safe_sku}");
+                        if(!container) return;
                         const slides = container.querySelectorAll('.slide');
                         let currentIdx = 0;
                         window.moveSlide_{safe_sku} = function(direction) {{
@@ -243,6 +213,8 @@ if df is not None:
         with m_col2:
             st.markdown(f"<h3 style='margin-top:0;'>{item_data['Item Name']}</h3>", unsafe_allow_html=True)
             
+            # Locked the table border to a dark grey so it looks good on the black background
+            table_border = "#444444" 
             table_html = f"""
             <table style="width: 100%; border-collapse: collapse; font-size: 15px; margin-top: 10px;">
                 <tr style="border-bottom: 1px solid {table_border};">
@@ -277,10 +249,6 @@ if df is not None:
             """
             st.markdown(table_html, unsafe_allow_html=True)
 
-    # --- IMPORTANT NOTE FOR THE MAIN GRID ---
-    # Make sure to update the image URL in the main grid section at the bottom of your code to look for the "_1.jpg" image:
-    # img_url = f"https://raw.githubusercontent.com/virajbhatt27/drone-inventory/main/assets/{sku}_1.jpg"
-
     # ---------------------------------------------------------
     # MAIN GRID RENDERING 
     # ---------------------------------------------------------
@@ -291,15 +259,14 @@ if df is not None:
         for index, (df_index, item) in enumerate(row.iterrows()):
             with cols[index]:
                 sku = str(item['SKU (ID)'])
-                img_url = f"https://raw.githubusercontent.com/virajbhatt27/drone-inventory/main/assets/{sku}.jpg"
                 
+                # FIXED: Home page image grid now looks for the _1.jpg file
+                img_url = f"https://raw.githubusercontent.com/virajbhatt27/drone-inventory/main/assets/{sku}_1.jpg"
                 st.image(img_url, use_container_width=True)
                 
                 name_col, btn_col = st.columns([5, 1])
-                
                 with name_col:
                     st.markdown(f"<div style='font-weight: 600; padding-top: 5px; font-size: 15px;'>{item['Item Name']}</div>", unsafe_allow_html=True)
-                
                 with btn_col:
                     if st.button("ⓘ", key=f"info_{sku}"):
                         show_item_details(item)
