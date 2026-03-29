@@ -57,7 +57,7 @@ if is_dark:
     
     # Modal Pop-up: LIGHT (Inverted)
     modal_bg = "#F4F6F9"
-    modal_text = "#000000"     # All Modal Text BLACK
+    modal_text = "#FFFFFF"     # All Modal Text BLACK
     modal_border = "#CCCCCC"
     table_border = "#DDDDDD"
 else:
