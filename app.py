@@ -43,7 +43,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # 3. Data Engine
-SHEET_URL = "https://docs.google.com/spreadsheets/d/1PBqvfkGOYiHEXmasAf-11af2tLZQaf8A/export?format=xlsx"
+SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSPubWzU-KvqZFCgU_dGHxmGQxbg234qSR62w4TvyzrCPlxw1zzVsgYpbgsNYQCtw/pub?output=xlsx"
 
 @st.cache_data(ttl=10)
 def load_data():
